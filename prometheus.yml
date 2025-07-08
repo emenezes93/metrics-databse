@@ -1,0 +1,38 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'mysql-exporter'
+    static_configs:
+      - targets: ['mysql-exporter:9104']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    
+  - job_name: 'k6-metrics'
+    static_configs:
+      - targets: ['localhost:6565']
+    scrape_interval: 5s
+    metrics_path: /metrics
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Remote write configuration for K6 metrics
+remote_write:
+  - url: http://localhost:9090/api/v1/write
+    queue_config:
+      max_samples_per_send: 1000
+      batch_send_deadline: 5s
+      max_retries: 3
