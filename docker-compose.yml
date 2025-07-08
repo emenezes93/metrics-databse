@@ -19,19 +19,25 @@ services:
       - monitoring
     restart: unless-stopped
     command: --performance-schema=ON
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      timeout: 10s
+      retries: 3
 
   mysql-exporter:
     image: prom/mysqld-exporter:latest
     container_name: mysql-exporter
     environment:
-      DATA_SOURCE_NAME: "root:rootpassword@(mysql:3306)/"
+      DATA_SOURCE_NAME: "root:rootpassword@tcp(mysql:3306)/"
     ports:
       - "9104:9104"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     networks:
       - monitoring
     restart: unless-stopped
+    command: ["--config.my-cnf", ""]
 
   prometheus:
     image: prom/prometheus:latest
