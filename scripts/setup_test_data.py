@@ -60,6 +60,45 @@ def wait_for_database():
     print("Failed to connect to database after maximum retries")
     return False
 
+def clear_existing_data(conn):
+    """Clear existing test data from all tables"""
+    print("🧹 Clearing existing test data...")
+    
+    cursor = conn.cursor()
+    
+    # Tables to clear in order (respecting foreign key constraints)
+    tables_to_clear = [
+        'user_sessions',
+        'performance_test',
+        'reviews',
+        'order_items',
+        'orders',
+        'products',
+        'users'
+    ]
+    
+    try:
+        # Disable foreign key checks temporarily
+        cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
+        
+        for table in tables_to_clear:
+            cursor.execute(f"TRUNCATE TABLE {table}")
+            print(f"  ✓ Cleared {table}")
+        
+        # Re-enable foreign key checks
+        cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
+        
+        conn.commit()
+        print("✅ Existing data cleared successfully")
+        
+    except Exception as e:
+        print(f"❌ Error clearing data: {e}")
+        conn.rollback()
+        raise
+    
+    finally:
+        cursor.close()
+
 def generate_users(conn, count):
     """Generate test users"""
     print(f"Generating {count} users...")
@@ -459,18 +498,19 @@ def update_statistics(conn):
     """Update table statistics for query optimization"""
     print("Updating table statistics...")
     
-    cursor = conn.cursor()
+    cursor = conn.cursor(buffered=True)
     
     tables = ['users', 'products', 'orders', 'order_items', 'reviews', 'categories', 'user_sessions', 'performance_test']
     
     for table in tables:
         try:
             cursor.execute(f"ANALYZE TABLE {table}")
-            conn.commit()
+            result = cursor.fetchall()  # Consume the results
             print(f"✓ Analyzed table: {table}")
         except mysql.connector.Error as err:
             print(f"Table analysis failed: {err}")
     
+    conn.commit()  # Single commit after all operations
     cursor.close()
 
 def verify_data_integrity(conn):
@@ -531,6 +571,9 @@ def main():
     
     try:
         start_time = time.time()
+        
+        # Clear existing data first
+        clear_existing_data(conn)
         
         # Generate test data
         generate_users(conn, USERS_COUNT)

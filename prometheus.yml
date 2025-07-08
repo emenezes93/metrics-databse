@@ -1,6 +1,8 @@
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
+  external_labels:
+    monitor: 'mysql-monitoring'
 
 rule_files:
   # - "first_rules.yml"
@@ -33,5 +35,9 @@ alerting:
 remote_write:
   - url: http://localhost:9090/api/v1/write
     queue_config:
-      max_samples_per_send: 1000
-      batch_send_deadline: 5s
+      max_samples_per_send: 500
+      batch_send_deadline: 10s
+      max_shards: 10
+      min_shards: 1
+      max_backoff: 5s
+      min_backoff: 30ms

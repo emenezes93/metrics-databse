@@ -27,17 +27,17 @@ services:
   mysql-exporter:
     image: prom/mysqld-exporter:latest
     container_name: mysql-exporter
-    environment:
-      DATA_SOURCE_NAME: "root:rootpassword@tcp(mysql:3306)/"
     ports:
       - "9104:9104"
+    command:
+      - "--mysqld.username=testuser:testpassword"
+      - "--mysqld.address=mysql:3306"
     depends_on:
       mysql:
         condition: service_healthy
     networks:
       - monitoring
     restart: unless-stopped
-    command: ["--config.my-cnf", ""]
 
   prometheus:
     image: prom/prometheus:latest
@@ -54,6 +54,7 @@ services:
       - '--web.console.templates=/usr/share/prometheus/consoles'
       - '--web.enable-lifecycle'
       - '--web.enable-admin-api'
+      - '--web.enable-remote-write-receiver'
     networks:
       - monitoring
     restart: unless-stopped
