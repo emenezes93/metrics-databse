@@ -78,7 +78,7 @@ def generate_users(conn, count):
             
             user_data = (
                 f"user_{user_id}",
-                fake.email(),
+                f"user_{user_id}@example.com",
                 fake.sha256(),
                 fake.first_name(),
                 fake.last_name(),
