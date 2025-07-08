@@ -42,7 +42,7 @@ mysql-monitoring/
 ### Prerequisites
 
 - Docker and Docker Compose
-- K6 with xk6-sql extension (for advanced MySQL testing)
+- Make sure Docker daemon is running
 
 ### 1. Start the Infrastructure
 
@@ -79,28 +79,57 @@ docker-compose exec setup env USERS_COUNT=50000 PRODUCTS_COUNT=25000 python /scr
 ### 4. Run Performance Tests
 
 ```bash
-# Install K6 with SQL extension (if not already installed)
-# Follow: https://github.com/grafana/xk6-sql
+# Run tests using the k6 container (recommended)
+docker-compose exec k6 k6 run /scripts/basic-test.js
 
 # Basic performance test
-k6 run k6-tests/mysql-performance-test.js
+docker-compose exec k6 k6 run /scripts/mysql-performance-test.js
 
 # Load test with Prometheus output
-k6 run --out prometheus k6-tests/load-test.js
+docker-compose exec k6 k6 run --out experimental-prometheus-rw=http://prometheus:9090/api/v1/write /scripts/prometheus-compatible-test.js
+
+# Quick test
+docker-compose exec k6 k6 run /scripts/quick-test.js
 
 # Stress test
-k6 run --out prometheus k6-tests/stress-test.js
+docker-compose exec k6 k6 run /scripts/stress-test.js
 
 # Spike test
-k6 run --out prometheus k6-tests/spike-test.js
+docker-compose exec k6 k6 run /scripts/spike-test.js
 
 # Generate HTML report
-k6 run --out json=results.json k6-tests/load-test.js
+docker-compose exec k6 k6 run --out json=/scripts/results.json /scripts/load-test.js
+
+# Run complete system test
+./test-system.sh
+```
+
+**Alternative: Run tests locally (requires k6 installation)**
+```bash
+# If you have k6 installed locally
+k6 run k6-tests/basic-test.js
+k6 run k6-tests/mysql-performance-test.js
 ```
 
 ## 📊 Available Tests
 
-### 1. Basic Performance Test (`mysql-performance-test.js`)
+### 1. Basic Test (`basic-test.js`)
+Simple connectivity and basic functionality test:
+- Tests basic k6 functionality
+- Validates test setup
+
+### 2. Quick Test (`quick-test.js`) 
+Fast validation test for immediate feedback:
+- Short duration test
+- Basic performance validation
+
+### 3. Prometheus Compatible Test (`prometheus-compatible-test.js`)
+Optimized for Prometheus metrics collection:
+- Custom metrics with proper naming
+- Prometheus-compatible output format
+- DB operation simulation
+
+### 4. Basic Performance Test (`mysql-performance-test.js`)
 Tests various MySQL operations to validate response times:
 - Simple SELECT queries
 - Complex JOINs and subqueries
@@ -112,7 +141,7 @@ Tests various MySQL operations to validate response times:
 - 99th percentile < 200ms
 - Success rate > 95%
 
-### 2. Load Test (`load-test.js`)
+### 5. Load Test (`load-test.js`)
 Gradual load increase to test throughput:
 - Progressive ramp-up from 10 to 75 concurrent users
 - Mixed read/write workloads
@@ -124,7 +153,7 @@ Gradual load increase to test throughput:
 - Success rate > 95%
 - Minimum 1000 queries total
 
-### 3. Stress Test (`stress-test.js`)
+### 6. Stress Test (`stress-test.js`)
 High-load testing to find breaking points:
 - Aggressive ramp-up to 500 concurrent users
 - Connection pool testing
@@ -137,7 +166,7 @@ High-load testing to find breaking points:
 - Connection errors < 100
 - Query timeouts < 50
 
-### 4. Spike Test (`spike-test.js`)
+### 7. Spike Test (`spike-test.js`)
 Sudden load spikes to test system resilience:
 - Sudden jumps in concurrent users
 - Recovery time measurement
@@ -261,7 +290,13 @@ All tables include appropriate indexes for performance testing.
 Create custom K6 scripts for specific use cases:
 
 ```javascript
-import sql from 'k6/x/sql';
+import { check, sleep } from 'k6';
+import { Counter, Rate, Trend } from 'k6/metrics';
+
+// Custom metrics
+const customMetric = new Counter('custom_operations_total');
+const customRate = new Rate('custom_success_rate');
+const customTrend = new Trend('custom_duration_seconds');
 
 export const options = {
   stages: [
@@ -269,12 +304,30 @@ export const options = {
   ],
 };
 
-const db = sql.open('mysql', 'testuser:testpassword@tcp(mysql:3306)/testdb');
-
 export default function() {
-  const results = sql.query(db, 'SELECT * FROM your_table WHERE condition = ?', ['value']);
-  // Add your custom logic here
+  // Simulate your custom test logic
+  const start = Date.now();
+  
+  // Your custom test operations here
+  sleep(Math.random() * 0.5 + 0.1);
+  
+  const duration = (Date.now() - start) / 1000;
+  const success = Math.random() > 0.05; // 95% success rate
+  
+  customMetric.add(1);
+  customRate.add(success);
+  customTrend.add(duration);
+  
+  check(success, {
+    'operation succeeded': (result) => result,
+  });
 }
+```
+
+**To run custom tests:**
+```bash
+# Place your custom test in k6-tests/ directory
+docker-compose exec k6 k6 run /scripts/your-custom-test.js
 ```
 
 ### Monitoring Production
