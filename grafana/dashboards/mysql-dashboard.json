@@ -235,7 +235,7 @@
               }
             ]
           },
-          "unit": "ms"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -403,13 +403,13 @@
               }
             ]
           },
-          "unit": "ms"
+          "unit": "short"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 24,
+        "w": 12,
         "x": 0,
         "y": 16
       },
@@ -426,25 +426,19 @@
       },
       "targets": [
         {
-          "expr": "k6_http_req_duration_average",
+          "expr": "k6_db_operations_total",
           "interval": "",
-          "legendFormat": "K6 HTTP Request Duration (avg)",
+          "legendFormat": "K6 DB Operations Total",
           "refId": "A"
         },
         {
-          "expr": "k6_http_req_duration_p95",
+          "expr": "rate(k6_db_operations_total[5m])",
           "interval": "",
-          "legendFormat": "K6 HTTP Request Duration (p95)",
+          "legendFormat": "K6 DB Operations/sec",
           "refId": "B"
-        },
-        {
-          "expr": "k6_http_req_duration_p99",
-          "interval": "",
-          "legendFormat": "K6 HTTP Request Duration (p99)",
-          "refId": "C"
         }
       ],
-      "title": "K6 Response Times",
+      "title": "K6 Database Operations",
       "type": "timeseries"
     },
     {
@@ -496,15 +490,15 @@
               }
             ]
           },
-          "unit": "reqps"
+          "unit": "percentunit"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 24
+        "x": 12,
+        "y": 16
       },
       "id": 6,
       "options": {
@@ -519,13 +513,13 @@
       },
       "targets": [
         {
-          "expr": "k6_http_reqs_rate",
+          "expr": "k6_db_success_rate",
           "interval": "",
-          "legendFormat": "K6 Request Rate",
+          "legendFormat": "K6 DB Success Rate",
           "refId": "A"
         }
       ],
-      "title": "K6 Request Rate",
+      "title": "K6 Database Success Rate",
       "type": "timeseries"
     },
     {
@@ -572,19 +566,23 @@
                 "value": null
               },
               {
+                "color": "yellow",
+                "value": 0.5
+              },
+              {
                 "color": "red",
-                "value": 80
+                "value": 1.0
               }
             ]
           },
-          "unit": "percent"
+          "unit": "s"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
+        "w": 24,
+        "x": 0,
         "y": 24
       },
       "id": 7,
@@ -600,20 +598,273 @@
       },
       "targets": [
         {
-          "expr": "k6_http_req_failed_rate * 100",
+          "expr": "histogram_quantile(0.50, k6_db_operation_duration_seconds_bucket)",
           "interval": "",
-          "legendFormat": "K6 Error Rate (%)",
+          "legendFormat": "K6 DB Duration p50",
           "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, k6_db_operation_duration_seconds_bucket)",
+          "interval": "",
+          "legendFormat": "K6 DB Duration p95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, k6_db_operation_duration_seconds_bucket)",
+          "interval": "",
+          "legendFormat": "K6 DB Duration p99",
+          "refId": "C"
         }
       ],
-      "title": "K6 Error Rate",
+      "title": "K6 Database Operation Duration",
       "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "rate(mysql_global_status_bytes_sent[5m])",
+          "interval": "",
+          "legendFormat": "Bytes Sent/sec",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(mysql_global_status_bytes_received[5m])",
+          "interval": "",
+          "legendFormat": "Bytes Received/sec",
+          "refId": "B"
+        }
+      ],
+      "title": "MySQL Network I/O",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "rate(mysql_global_status_innodb_data_reads[5m])",
+          "interval": "",
+          "legendFormat": "InnoDB Data Reads/sec",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(mysql_global_status_innodb_data_writes[5m])",
+          "interval": "",
+          "legendFormat": "InnoDB Data Writes/sec",
+          "refId": "B"
+        }
+      ],
+      "title": "InnoDB Data I/O",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "id": 10,
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "expr": "mysql_up",
+          "interval": "",
+          "legendFormat": "MySQL Status",
+          "refId": "A"
+        },
+        {
+          "expr": "mysql_global_status_uptime",
+          "interval": "",
+          "legendFormat": "MySQL Uptime (seconds)",
+          "refId": "B"
+        },
+        {
+          "expr": "mysql_global_status_max_used_connections",
+          "interval": "",
+          "legendFormat": "Max Used Connections",
+          "refId": "C"
+        },
+        {
+          "expr": "mysql_global_variables_max_connections",
+          "interval": "",
+          "legendFormat": "Max Connections Limit",
+          "refId": "D"
+        }
+      ],
+      "title": "MySQL System Status",
+      "type": "table"
     }
   ],
   "refresh": "5s",
   "schemaVersion": 27,
   "style": "dark",
-  "tags": [],
+  "tags": ["mysql", "k6", "performance"],
   "templating": {
     "list": []
   },
@@ -623,7 +874,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "MySQL Performance Dashboard",
-  "uid": "mysql-performance",
-  "version": 1
+  "title": "MySQL Performance Dashboard with K6 Metrics",
+  "uid": "mysql-performance-k6",
+  "version": 2
 }

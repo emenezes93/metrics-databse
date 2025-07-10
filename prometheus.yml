@@ -21,7 +21,7 @@ scrape_configs:
     
   - job_name: 'k6-metrics'
     static_configs:
-      - targets: ['localhost:6565']
+      - targets: ['k6-metrics-proxy:9091']
     scrape_interval: 5s
     metrics_path: /metrics
 
